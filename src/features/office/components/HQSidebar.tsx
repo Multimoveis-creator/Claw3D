@@ -98,15 +98,20 @@ export function HQSidebar({
   };
 
   return (
-    <aside className="pointer-events-none fixed inset-y-0 right-0 z-20 flex justify-end">
+    <aside className="pointer-events-none fixed inset-y-0 right-0 z-20 flex flex-row justify-end [direction:ltr]">
       <div
-        className="pointer-events-auto mt-14 flex max-h-[calc(100dvh-3.75rem)] shrink-0 flex-col items-end gap-1.5 overflow-y-auto overscroll-contain pb-2 pl-1 [scrollbar-gutter:stable] [scrollbar-width:thin]"
+        className="pointer-events-auto relative z-30 mt-14 flex h-[calc(100dvh-3.5rem)] w-9 shrink-0 flex-col items-end gap-1 overflow-y-auto overscroll-contain pb-2 pl-1 [scrollbar-gutter:stable] [scrollbar-width:thin]"
         onWheelCapture={(event) => event.stopPropagation()}
+        onWheel={(event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          event.currentTarget.scrollTop += event.deltaY;
+        }}
       >
         <button
           type="button"
           onClick={handleHqToggle}
-          className="shrink-0 rounded-l-md border border-r-0 border-cyan-500/30 bg-[#06090d]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-cyan-300 shadow-xl backdrop-blur transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
+          className="shrink-0 rounded-l-md border border-r-0 border-cyan-500/30 bg-[#06090d]/90 px-1.5 py-2 font-mono text-[10px] font-semibold tracking-[0.18em] text-cyan-300 shadow-xl backdrop-blur transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
           aria-expanded={open && !analyticsOnly && !costsOnly}
           aria-label={open && !analyticsOnly && !costsOnly ? "Collapse headquarters sidebar" : "Open headquarters sidebar"}
         >
@@ -118,7 +123,7 @@ export function HQSidebar({
         <button
           type="button"
           onClick={handleMarketplace}
-          className="shrink-0 rounded-l-md border border-r-0 border-fuchsia-500/25 bg-[#100611]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-fuchsia-300/80 shadow-xl backdrop-blur transition-colors hover:border-fuchsia-400/45 hover:text-fuchsia-100"
+          className="shrink-0 rounded-l-md border border-r-0 border-fuchsia-500/25 bg-[#100611]/90 px-1.5 py-2 font-mono text-[10px] font-semibold tracking-[0.18em] text-fuchsia-300/80 shadow-xl backdrop-blur transition-colors hover:border-fuchsia-400/45 hover:text-fuchsia-100"
           aria-label="Open marketplace"
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
@@ -129,7 +134,7 @@ export function HQSidebar({
         <button
           type="button"
           onClick={() => openTab("analytics")}
-          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
+          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2 font-mono text-[10px] font-semibold tracking-[0.18em] shadow-xl backdrop-blur transition-colors ${
             analyticsOnly && open
               ? "border-amber-400/50 bg-[#1a1206]/95 text-amber-200"
               : "border-amber-500/25 bg-[#120d06]/90 text-amber-300/80 hover:border-amber-400/45 hover:text-amber-100"
@@ -145,7 +150,7 @@ export function HQSidebar({
         <button
           type="button"
           onClick={() => openTab("costs")}
-          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
+          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2 font-mono text-[10px] font-semibold tracking-[0.18em] shadow-xl backdrop-blur transition-colors ${
             costsOnly && open
               ? "border-cyan-400/55 bg-[#071b24]/95 text-cyan-100"
               : "border-cyan-500/25 bg-[#071117]/90 text-cyan-300/80 hover:border-cyan-400/45 hover:text-cyan-100"
@@ -161,7 +166,7 @@ export function HQSidebar({
 
       {open && costsOnly ? (
         <div
-          className="pointer-events-auto h-full w-[min(94vw,390px)] border-l border-cyan-500/20 bg-black/90 shadow-2xl backdrop-blur"
+          className="pointer-events-auto relative z-20 h-full w-[min(94vw,390px)] border-l border-cyan-500/20 bg-black/90 shadow-2xl backdrop-blur"
           onWheelCapture={(event) => event.stopPropagation()}
         >
           <AICostCenter onClose={onToggle} />
@@ -170,7 +175,7 @@ export function HQSidebar({
 
       {open && !costsOnly ? (
         <div
-          className={`pointer-events-auto flex h-full flex-col border-l border-cyan-500/20 bg-black/85 shadow-2xl backdrop-blur ${
+          className={`pointer-events-auto relative z-20 flex h-full flex-col border-l border-cyan-500/20 bg-black/85 shadow-2xl backdrop-blur ${
             boardLikeWidth ? "w-[min(94vw,1180px)]" : "w-56"
           }`}
           onWheelCapture={(event) => event.stopPropagation()}
