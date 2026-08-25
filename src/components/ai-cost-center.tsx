@@ -276,7 +276,7 @@ export function AICostCenter({ onClose }: AICostCenterProps) {
 
   useEffect(() => {
     if (!gatewayError) return;
-    setError(gatewayError instanceof Error ? gatewayError.message : String(gatewayError));
+    setError(gatewayError);
   }, [gatewayError]);
 
   const cards = useMemo(
