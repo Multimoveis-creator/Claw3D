@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AICostCenter } from "@/components/ai-cost-center";
 
 export type HQSidebarTab =
   | "inbox"
@@ -50,6 +51,7 @@ export function HQSidebar({
   playbooksPanel,
   analyticsPanel,
 }: HQSidebarProps) {
+  const [aiCostsOpen, setAiCostsOpen] = useState(false);
   const analyticsOnly = activeTab === "analytics";
   const railOnly = analyticsOnly;
   const activePanel =
@@ -59,17 +61,46 @@ export function HQSidebar({
         ? historyPanel
         : activeTab === "kanban"
           ? kanbanPanel
-        : activeTab === "playbooks"
-          ? playbooksPanel
-          : analyticsPanel;
+          : activeTab === "playbooks"
+            ? playbooksPanel
+            : analyticsPanel;
   const boardLikeWidth = activeTab === "kanban";
+
+  const handleHqToggle = () => {
+    if (aiCostsOpen) setAiCostsOpen(false);
+    onToggle();
+  };
+
+  const handleMarketplace = () => {
+    setAiCostsOpen(false);
+    onOpenMarketplace();
+  };
+
+  const handleAnalytics = () => {
+    setAiCostsOpen(false);
+    onTabChange("analytics");
+    if (!open) {
+      onToggle();
+    }
+  };
+
+  const handleAiCosts = () => {
+    if (aiCostsOpen) {
+      setAiCostsOpen(false);
+      return;
+    }
+    if (open) {
+      onToggle();
+    }
+    setAiCostsOpen(true);
+  };
 
   return (
     <aside className="pointer-events-none fixed inset-y-0 right-0 z-20 flex justify-end">
       <div className="pointer-events-auto mt-14 flex shrink-0 flex-col items-end gap-1.5">
         <button
           type="button"
-          onClick={onToggle}
+          onClick={handleHqToggle}
           className="rounded-l-md border border-r-0 border-cyan-500/30 bg-[#06090d]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-cyan-300 shadow-xl backdrop-blur transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
           aria-expanded={open}
           aria-label={open ? "Collapse headquarters sidebar" : "Open headquarters sidebar"}
@@ -81,9 +112,7 @@ export function HQSidebar({
 
         <button
           type="button"
-          onClick={() => {
-            onOpenMarketplace();
-          }}
+          onClick={handleMarketplace}
           className="rounded-l-md border border-r-0 border-fuchsia-500/25 bg-[#100611]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-fuchsia-300/80 shadow-xl backdrop-blur transition-colors hover:border-fuchsia-400/45 hover:text-fuchsia-100"
           aria-label="Open marketplace"
         >
@@ -94,27 +123,38 @@ export function HQSidebar({
 
         <button
           type="button"
-          onClick={() => {
-            onTabChange("analytics");
-            if (!open) {
-              onToggle();
-            }
-          }}
+          onClick={handleAnalytics}
           className={`rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
-            analyticsOnly
+            analyticsOnly && open && !aiCostsOpen
               ? "border-amber-400/50 bg-[#1a1206]/95 text-amber-200"
               : "border-amber-500/25 bg-[#120d06]/90 text-amber-300/80 hover:border-amber-400/45 hover:text-amber-100"
           }`}
-          aria-pressed={analyticsOnly}
+          aria-pressed={analyticsOnly && open && !aiCostsOpen}
           aria-label="Open analytics sidebar"
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
             ANALYTICS
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={handleAiCosts}
+          className={`rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
+            aiCostsOpen
+              ? "border-cyan-400/55 bg-[#071b24]/95 text-cyan-100"
+              : "border-cyan-500/25 bg-[#071117]/90 text-cyan-300/80 hover:border-cyan-400/45 hover:text-cyan-100"
+          }`}
+          aria-pressed={aiCostsOpen}
+          aria-label="Open AI cost center"
+        >
+          <span className="block leading-none [writing-mode:vertical-rl]">
+            AI COST
+          </span>
+        </button>
       </div>
 
-      {open ? (
+      {open && !aiCostsOpen ? (
         <div
           className={`pointer-events-auto flex h-full flex-col border-l border-cyan-500/20 bg-black/85 shadow-2xl backdrop-blur ${
             boardLikeWidth ? "w-[min(94vw,1180px)]" : "w-56"
@@ -202,6 +242,12 @@ export function HQSidebar({
           >
             {activePanel}
           </div>
+        </div>
+      ) : null}
+
+      {aiCostsOpen ? (
+        <div className="pointer-events-auto h-full w-[min(94vw,390px)] border-l border-cyan-500/20 bg-black/90 shadow-2xl backdrop-blur">
+          <AICostCenter onClose={() => setAiCostsOpen(false)} />
         </div>
       ) : null}
     </aside>
