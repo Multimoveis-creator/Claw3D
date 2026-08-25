@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" role="img" aria-label="Multimóveis">
+  <rect width="1200" height="240" fill="#ffffff"/>
+  <g transform="translate(30 48)">
+    <path d="M0 0h72l54 144H0z" fill="#F3B747"/>
+    <path d="M78 0h74v144h-20L78 0z" fill="#F3B747"/>
+  </g>
+  <text x="220" y="164" fill="#172238" font-family="Arial, Helvetica, sans-serif" font-size="118" font-weight="600" letter-spacing="1">MULTIMÓVEIS</text>
+</svg>

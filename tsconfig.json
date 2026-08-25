@@ -23,6 +23,9 @@
       }
     ],
     "paths": {
+      "@/features/retro-office/scene/environment": [
+        "./src/custom/multimoveisEnvironment.tsx"
+      ],
       "@/*": [
         "./src/*"
       ]
