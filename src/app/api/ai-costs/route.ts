@@ -189,6 +189,24 @@ const buildPrompt = () => {
   ].join("\n");
 };
 
+const extractOpenClawError = (text: string, status: number): string => {
+  const fallback = `OpenClaw costs request failed with HTTP ${status}.`;
+  if (!text.trim()) return fallback;
+  try {
+    const payload = JSON.parse(text) as unknown;
+    const root = asRecord(payload);
+    const error = asRecord(root?.error);
+    const message =
+      (typeof error?.message === "string" && error.message.trim()) ||
+      (typeof root?.message === "string" && root.message.trim()) ||
+      "";
+    return message ? `${fallback} ${message}` : fallback;
+  } catch {
+    const compact = text.replace(/\s+/g, " ").trim().slice(0, 240);
+    return compact ? `${fallback} ${compact}` : fallback;
+  }
+};
+
 const fetchCostSummary = async (): Promise<CostSummary> => {
   const gatewayRaw =
     process.env.CLAW3D_COSTS_OPENCLAW_URL?.trim() ||
@@ -198,9 +216,9 @@ const fetchCostSummary = async (): Promise<CostSummary> => {
     process.env.CLAW3D_GATEWAY_TOKEN?.trim() ||
     process.env.OPENCLAW_GATEWAY_TOKEN?.trim() ||
     "";
-  const explicitModel = process.env.CLAW3D_COSTS_MODEL?.trim() || "";
+  const backendModelOverride = process.env.CLAW3D_COSTS_MODEL?.trim() || "";
   const agentId = process.env.CLAW3D_COSTS_AGENT_ID?.trim() || "main";
-  const model = explicitModel || `openclaw://agent/${agentId}`;
+  const agentModel = agentId === "default" ? "openclaw/default" : `openclaw/${agentId}`;
 
   if (!gatewayRaw || !token) {
     throw new Error(
@@ -219,9 +237,14 @@ const fetchCostSummary = async (): Promise<CostSummary> => {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
         Accept: "application/json",
+        "x-openclaw-agent-id": agentId,
+        ...(backendModelOverride
+          ? { "x-openclaw-model": backendModelOverride }
+          : {}),
       },
       body: JSON.stringify({
-        model,
+        model: agentModel,
+        user: "claw3d:ai-cost-center",
         messages: [{ role: "user", content: buildPrompt() }],
         stream: false,
       }),
@@ -231,7 +254,7 @@ const fetchCostSummary = async (): Promise<CostSummary> => {
 
     const text = await response.text();
     if (!response.ok) {
-      throw new Error(`OpenClaw costs request failed with HTTP ${response.status}.`);
+      throw new Error(extractOpenClawError(text, response.status));
     }
 
     let payload: unknown;
