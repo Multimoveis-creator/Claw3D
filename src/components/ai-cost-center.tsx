@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, WalletCards, X } from "lucide-react";
+import { RefreshCw, X } from "lucide-react";
 
 type ProviderCost = {
   today: number | null;
@@ -26,9 +26,12 @@ type ApiError = {
   message?: string;
 };
 
+type AICostCenterProps = {
+  onClose?: () => void;
+};
+
 const BRAND_GOLD = "#F3B747";
 const FUTURE_CYAN = "#23D5FF";
-const PANEL_BG = "rgba(7, 14, 28, 0.97)";
 const AUTO_REFRESH_MS = 300_000;
 
 const PROVIDERS: Array<{
@@ -66,12 +69,10 @@ const formatUpdatedAt = (value: string) => {
   }).format(parsed);
 };
 
-export function AICostCenter() {
-  const [open, setOpen] = useState(false);
+export function AICostCenter({ onClose }: AICostCenterProps) {
   const [data, setData] = useState<CostSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadedOnce, setLoadedOnce] = useState(false);
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
@@ -89,195 +90,159 @@ export function AICostCenter() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível consultar os custos de IA.");
     } finally {
-      setLoadedOnce(true);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    if (!loadedOnce && !loading) void load(false);
+    void load(false);
     const interval = window.setInterval(() => {
       void load(false);
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(interval);
-  }, [open, loadedOnce, loading, load]);
+  }, [load]);
 
-  const statusColor = error ? "#EF4444" : loading ? BRAND_GOLD : data ? "#22C55E" : "#64748B";
   const statusLabel = error ? "Indisponível" : loading ? "Atualizando" : data ? "Disponível" : "Sem dados";
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-label={`${open ? "Fechar" : "Abrir"} painel de custos de inteligência artificial`}
-        aria-expanded={open}
-        title={`AI Cost Center · ${statusLabel}`}
-        style={{
-          position: "fixed",
-          top: 410,
-          right: 0,
-          zIndex: 30,
-          width: 31,
-          minHeight: 92,
-          padding: "9px 5px",
-          borderRadius: "6px 0 0 6px",
-          border: `1px solid ${error ? "rgba(239,68,68,.45)" : "rgba(35,213,255,.28)"}`,
-          borderRight: 0,
-          background: open ? "rgba(10,30,39,.98)" : "rgba(6,16,22,.93)",
-          color: FUTURE_CYAN,
-          boxShadow: "0 10px 26px rgba(0,0,0,.42)",
-          backdropFilter: "blur(10px)",
-          cursor: "pointer",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 7,
-          fontFamily: "var(--font-mono), monospace",
-        }}
-      >
-        <WalletCards size={13} color={BRAND_GOLD} />
-        <span style={{ writingMode: "vertical-rl", lineHeight: 1, fontSize: 9, fontWeight: 700, letterSpacing: ".17em" }}>
-          AI COST
-        </span>
-        <span
-          aria-hidden="true"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 99,
-            background: statusColor,
-            boxShadow: `0 0 8px ${statusColor}`,
-          }}
-        />
-      </button>
-
-      {open ? (
-        <section
-          aria-label="Custos de inteligência artificial"
-          style={{
-            position: "fixed",
-            top: 56,
-            right: 31,
-            bottom: 16,
-            zIndex: 29,
-            width: "min(390px, calc(100vw - 47px))",
-            overflowY: "auto",
-            overflowX: "hidden",
-            borderRadius: "14px 0 0 14px",
-            border: "1px solid rgba(35,213,255,.28)",
-            background: PANEL_BG,
-            color: "#F8FAFC",
-            boxShadow: "-18px 24px 70px rgba(0,0,0,.55), inset 0 0 45px rgba(35,213,255,.035)",
-            backdropFilter: "blur(16px)",
-            fontFamily: "var(--font-sans), sans-serif",
-          }}
-        >
-          <div
-            style={{
-              position: "sticky",
-              top: 0,
-              zIndex: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "15px 16px 13px",
-              borderBottom: "1px solid rgba(255,255,255,.08)",
-              background: "linear-gradient(90deg, rgba(17,27,43,.99), rgba(7,14,28,.99))",
-            }}
+    <section
+      aria-label="Custos de inteligência artificial"
+      className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(7,14,28,0.97)] text-slate-50"
+    >
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-gradient-to-r from-[#111b2b] to-[#070e1c] px-4 py-4">
+        <div>
+          <div className="mb-1 font-mono text-[10px] font-bold tracking-[0.15em] text-[#F3B747]">
+            MULTIMÓVEIS · AI OPS
+          </div>
+          <div className="text-lg font-bold">Custos IA</div>
+          <div className="mt-1 font-mono text-[9px] uppercase text-slate-500">
+            {statusLabel}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            disabled={loading}
+            aria-label="Atualizar custos"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-cyan-400/25 bg-cyan-400/5 text-cyan-300 transition hover:border-cyan-300/50 hover:text-cyan-100 disabled:cursor-wait disabled:opacity-60"
           >
-            <div>
-              <div style={{ color: BRAND_GOLD, fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700, letterSpacing: ".15em", marginBottom: 4 }}>
-                MULTIMÓVEIS · AI OPS
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>Custos IA</div>
-              <div style={{ marginTop: 3, color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>
-                {statusLabel.toUpperCase()}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <button
-                type="button"
-                onClick={() => void load(true)}
-                disabled={loading}
-                aria-label="Atualizar custos"
-                style={{ width: 34, height: 34, display: "grid", placeItems: "center", borderRadius: 9, border: "1px solid rgba(35,213,255,.24)", background: "rgba(35,213,255,.06)", color: FUTURE_CYAN, cursor: loading ? "wait" : "pointer" }}
-              >
-                <RefreshCw size={15} style={{ opacity: loading ? 0.55 : 1 }} />
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Fechar painel de custos"
-                style={{ width: 34, height: 34, display: "grid", placeItems: "center", borderRadius: 9, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#CBD5E1", cursor: "pointer" }}
-              >
-                <X size={16} />
-              </button>
-            </div>
+            <RefreshCw size={15} />
+          </button>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar painel de custos"
+              className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {loading && !data ? (
+          <div className="m-4 rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-5 text-amber-200">
+            Consultando os plugins de custo no OpenClaw. Isso pode levar alguns minutos.
           </div>
+        ) : null}
 
-          {loading && !data ? (
-            <div style={{ margin: 14, padding: 12, borderRadius: 10, border: "1px solid rgba(243,183,71,.24)", background: "rgba(243,183,71,.07)", color: "#FDE68A", fontSize: 12 }}>
-              Consultando os plugins de custo no OpenClaw. Isso pode levar alguns minutos.
-            </div>
-          ) : null}
+        {error ? (
+          <div className="m-4 rounded-lg border border-red-400/25 bg-red-950/25 p-3 text-xs leading-5 text-red-300">
+            {error}
+          </div>
+        ) : null}
 
-          {error ? (
-            <div style={{ margin: 14, padding: 12, borderRadius: 10, border: "1px solid rgba(239,68,68,.28)", background: "rgba(127,29,29,.18)", color: "#FCA5A5", fontSize: 12, lineHeight: 1.45 }}>
-              {error}
-            </div>
-          ) : null}
-
-          <div style={{ padding: "14px 14px 6px" }}>
-            {PROVIDERS.map((provider) => {
-              const cost = data?.providers[provider.key] ?? null;
-              return (
-                <div key={provider.key} style={{ display: "grid", gridTemplateColumns: "1.35fr .9fr .9fr .9fr", alignItems: "center", gap: 8, minHeight: 61, padding: "10px", marginBottom: 8, borderRadius: 11, border: "1px solid rgba(255,255,255,.075)", background: "rgba(255,255,255,.028)" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: 99, background: provider.accent, boxShadow: `0 0 9px ${provider.accent}` }} />
-                      <strong style={{ fontSize: 12 }}>{provider.label}</strong>
-                    </div>
+        <div className="px-4 pb-2 pt-4">
+          {PROVIDERS.map((provider) => {
+            const cost = data?.providers[provider.key] ?? null;
+            return (
+              <div
+                key={provider.key}
+                className="mb-2 grid min-h-[61px] grid-cols-[1.35fr_.9fr_.9fr_.9fr] items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.028] p-2.5"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-[7px] w-[7px] rounded-full"
+                      style={{
+                        background: provider.accent,
+                        boxShadow: `0 0 9px ${provider.accent}`,
+                      }}
+                    />
+                    <strong className="text-xs">{provider.label}</strong>
                   </div>
-                  <Metric label="HOJE" value={formatMoney(cost?.today ?? null, data?.currency ?? "USD")} />
-                  <Metric label="MÊS" value={formatMoney(cost?.month ?? null, data?.currency ?? "USD")} />
-                  <Metric label="SALDO" value={formatMoney(cost?.balance ?? null, data?.currency ?? "USD")} />
                 </div>
-              );
-            })}
-          </div>
+                <Metric label="HOJE" value={formatMoney(cost?.today ?? null, data?.currency ?? "USD")} />
+                <Metric label="MÊS" value={formatMoney(cost?.month ?? null, data?.currency ?? "USD")} />
+                <Metric label="SALDO" value={formatMoney(cost?.balance ?? null, data?.currency ?? "USD")} />
+              </div>
+            );
+          })}
+        </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "7px 14px 14px" }}>
-            <TotalCard label="TOTAL HOJE" value={formatMoney(data?.total_today ?? null, data?.currency ?? "USD")} accent={FUTURE_CYAN} />
-            <TotalCard label="TOTAL MÊS" value={formatMoney(data?.total_month ?? null, data?.currency ?? "USD")} accent={BRAND_GOLD} />
-          </div>
+        <div className="grid grid-cols-2 gap-2.5 px-4 pb-4 pt-2">
+          <TotalCard
+            label="TOTAL HOJE"
+            value={formatMoney(data?.total_today ?? null, data?.currency ?? "USD")}
+            accent={FUTURE_CYAN}
+          />
+          <TotalCard
+            label="TOTAL MÊS"
+            value={formatMoney(data?.total_month ?? null, data?.currency ?? "USD")}
+            accent={BRAND_GOLD}
+          />
+        </div>
+      </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 15px 12px", borderTop: "1px solid rgba(255,255,255,.07)", color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 9, letterSpacing: ".06em" }}>
-            <span>OPENCLAW PLUGINS</span>
-            <span>{data ? `ATUALIZADO ${formatUpdatedAt(data.updated_at)}` : loading ? "CONSULTANDO..." : "SEM DADOS"}</span>
-          </div>
-        </section>
-      ) : null}
-    </>
+      <div className="flex shrink-0 justify-between gap-3 border-t border-white/[0.07] px-4 py-3 font-mono text-[9px] tracking-[0.06em] text-slate-500">
+        <span>OPENCLAW PLUGINS</span>
+        <span>
+          {data
+            ? `ATUALIZADO ${formatUpdatedAt(data.updated_at)}`
+            : loading
+              ? "CONSULTANDO..."
+              : "SEM DADOS"}
+        </span>
+      </div>
+    </section>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ textAlign: "right", minWidth: 0 }}>
-      <div style={{ color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 8, letterSpacing: ".08em", marginBottom: 4 }}>{label}</div>
-      <div title={value} style={{ color: "#E2E8F0", fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+    <div className="min-w-0 text-right">
+      <div className="mb-1 font-mono text-[8px] tracking-[0.08em] text-slate-500">
+        {label}
+      </div>
+      <div
+        title={value}
+        className="overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] font-semibold text-slate-200"
+      >
+        {value}
+      </div>
     </div>
   );
 }
 
 function TotalCard({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div style={{ padding: "12px 13px", borderRadius: 11, border: `1px solid ${accent}33`, background: `${accent}0D` }}>
-      <div style={{ color: accent, fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: ".11em", marginBottom: 5 }}>{label}</div>
-      <div style={{ color: "#F8FAFC", fontFamily: "var(--font-mono), monospace", fontSize: 18, fontWeight: 700 }}>{value}</div>
+    <div
+      className="rounded-xl p-3"
+      style={{
+        border: `1px solid ${accent}33`,
+        background: `${accent}0D`,
+      }}
+    >
+      <div
+        className="mb-1 font-mono text-[9px] font-bold tracking-[0.11em]"
+        style={{ color: accent }}
+      >
+        {label}
+      </div>
+      <div className="font-mono text-lg font-bold text-slate-50">{value}</div>
     </div>
   );
 }
