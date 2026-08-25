@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
+
+type ProviderKey = "openrouter" | "elevenlabs" | "fal";
 
 type ProviderCost = {
   today: number | null;
@@ -12,13 +14,10 @@ type ProviderCost = {
 type CostSummary = {
   currency: string;
   updated_at: string;
-  providers: {
-    openrouter: ProviderCost;
-    elevenlabs: ProviderCost;
-    fal: ProviderCost;
-  };
+  providers: Record<ProviderKey, ProviderCost>;
   total_today: number | null;
   total_month: number | null;
+  provider_errors?: Partial<Record<ProviderKey, string>>;
 };
 
 type ApiError = {
@@ -35,7 +34,7 @@ const FUTURE_CYAN = "#23D5FF";
 const AUTO_REFRESH_MS = 300_000;
 
 const PROVIDERS: Array<{
-  key: keyof CostSummary["providers"];
+  key: ProviderKey;
   label: string;
   accent: string;
 }> = [
@@ -102,12 +101,25 @@ export function AICostCenter({ onClose }: AICostCenterProps) {
     return () => window.clearInterval(interval);
   }, [load]);
 
-  const statusLabel = error ? "Indisponível" : loading ? "Atualizando" : data ? "Disponível" : "Sem dados";
+  const hasProviderErrors = useMemo(
+    () => Boolean(data?.provider_errors && Object.keys(data.provider_errors).length > 0),
+    [data],
+  );
+  const statusLabel = error
+    ? "Indisponível"
+    : loading
+      ? "Atualizando"
+      : data
+        ? hasProviderErrors
+          ? "Parcial"
+          : "Disponível"
+        : "Sem dados";
 
   return (
     <section
       aria-label="Custos de inteligência artificial"
       className="flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(7,14,28,0.97)] text-slate-50"
+      onWheelCapture={(event) => event.stopPropagation()}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-gradient-to-r from-[#111b2b] to-[#070e1c] px-4 py-4">
         <div>
@@ -142,10 +154,10 @@ export function AICostCenter({ onClose }: AICostCenterProps) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {loading && !data ? (
           <div className="m-4 rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-5 text-amber-200">
-            Consultando os plugins de custo no OpenClaw. Isso pode levar alguns minutos.
+            Consultando OpenRouter, ElevenLabs e FAL.ai em execuções separadas. Os resultados aparecem assim que a consulta terminar.
           </div>
         ) : null}
 
@@ -155,29 +167,43 @@ export function AICostCenter({ onClose }: AICostCenterProps) {
           </div>
         ) : null}
 
+        {hasProviderErrors ? (
+          <div className="m-4 rounded-lg border border-amber-300/20 bg-amber-300/5 p-3 text-xs leading-5 text-amber-200">
+            Alguns provedores não responderam. Os dados disponíveis foram mantidos abaixo.
+          </div>
+        ) : null}
+
         <div className="px-4 pb-2 pt-4">
           {PROVIDERS.map((provider) => {
             const cost = data?.providers[provider.key] ?? null;
+            const providerError = data?.provider_errors?.[provider.key] ?? null;
             return (
               <div
                 key={provider.key}
-                className="mb-2 grid min-h-[61px] grid-cols-[1.35fr_.9fr_.9fr_.9fr] items-center gap-2 rounded-xl border border-white/[0.075] bg-white/[0.028] p-2.5"
+                className="mb-2 rounded-xl border border-white/[0.075] bg-white/[0.028] p-2.5"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-[7px] w-[7px] rounded-full"
-                      style={{
-                        background: provider.accent,
-                        boxShadow: `0 0 9px ${provider.accent}`,
-                      }}
-                    />
-                    <strong className="text-xs">{provider.label}</strong>
+                <div className="grid min-h-[42px] grid-cols-[1.35fr_.9fr_.9fr_.9fr] items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-[7px] w-[7px] rounded-full"
+                        style={{
+                          background: providerError ? "#EF4444" : provider.accent,
+                          boxShadow: `0 0 9px ${providerError ? "#EF4444" : provider.accent}`,
+                        }}
+                      />
+                      <strong className="text-xs">{provider.label}</strong>
+                    </div>
                   </div>
+                  <Metric label="HOJE" value={formatMoney(cost?.today ?? null, data?.currency ?? "USD")} />
+                  <Metric label="MÊS" value={formatMoney(cost?.month ?? null, data?.currency ?? "USD")} />
+                  <Metric label="SALDO" value={formatMoney(cost?.balance ?? null, data?.currency ?? "USD")} />
                 </div>
-                <Metric label="HOJE" value={formatMoney(cost?.today ?? null, data?.currency ?? "USD")} />
-                <Metric label="MÊS" value={formatMoney(cost?.month ?? null, data?.currency ?? "USD")} />
-                <Metric label="SALDO" value={formatMoney(cost?.balance ?? null, data?.currency ?? "USD")} />
+                {providerError ? (
+                  <div className="mt-2 border-t border-red-400/10 pt-2 font-mono text-[9px] leading-4 text-red-300/80">
+                    {providerError}
+                  </div>
+                ) : null}
               </div>
             );
           })}
