@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AICostCenter } from "@/components/ai-cost-center";
 
 export type HQSidebarTab =
@@ -8,7 +8,8 @@ export type HQSidebarTab =
   | "history"
   | "kanban"
   | "playbooks"
-  | "analytics";
+  | "analytics"
+  | "costs";
 
 type HQSidebarProps = {
   open: boolean;
@@ -26,7 +27,7 @@ type HQSidebarProps = {
   analyticsPanel: ReactNode;
 };
 
-const TAB_LABELS: Record<HQSidebarTab, string> = {
+const TAB_LABELS: Record<Exclude<HQSidebarTab, "costs">, string> = {
   inbox: "Inbox",
   history: "History",
   kanban: "Kanban",
@@ -34,7 +35,12 @@ const TAB_LABELS: Record<HQSidebarTab, string> = {
   analytics: "Analytics",
 };
 
-const PRIMARY_TABS: HQSidebarTab[] = ["inbox", "history", "kanban", "playbooks"];
+const PRIMARY_TABS: Array<Exclude<HQSidebarTab, "analytics" | "costs">> = [
+  "inbox",
+  "history",
+  "kanban",
+  "playbooks",
+];
 
 export function HQSidebar({
   open,
@@ -51,9 +57,9 @@ export function HQSidebar({
   playbooksPanel,
   analyticsPanel,
 }: HQSidebarProps) {
-  const [aiCostsOpen, setAiCostsOpen] = useState(false);
   const analyticsOnly = activeTab === "analytics";
-  const railOnly = analyticsOnly;
+  const costsOnly = activeTab === "costs";
+  const railOnly = analyticsOnly || costsOnly;
   const activePanel =
     activeTab === "inbox"
       ? inboxPanel
@@ -66,54 +72,53 @@ export function HQSidebar({
             : analyticsPanel;
   const boardLikeWidth = activeTab === "kanban";
 
+  const openTab = (tab: HQSidebarTab) => {
+    if (open && activeTab === tab) {
+      onToggle();
+      return;
+    }
+    onTabChange(tab);
+    if (!open) onToggle();
+  };
+
   const handleHqToggle = () => {
-    if (aiCostsOpen) setAiCostsOpen(false);
+    if (open && (analyticsOnly || costsOnly)) {
+      onTabChange("inbox");
+      return;
+    }
+    if (!open && (analyticsOnly || costsOnly)) {
+      onTabChange("inbox");
+    }
     onToggle();
   };
 
   const handleMarketplace = () => {
-    setAiCostsOpen(false);
+    if (open) onToggle();
     onOpenMarketplace();
-  };
-
-  const handleAnalytics = () => {
-    setAiCostsOpen(false);
-    onTabChange("analytics");
-    if (!open) {
-      onToggle();
-    }
-  };
-
-  const handleAiCosts = () => {
-    if (aiCostsOpen) {
-      setAiCostsOpen(false);
-      return;
-    }
-    if (open) {
-      onToggle();
-    }
-    setAiCostsOpen(true);
   };
 
   return (
     <aside className="pointer-events-none fixed inset-y-0 right-0 z-20 flex justify-end">
-      <div className="pointer-events-auto mt-14 flex shrink-0 flex-col items-end gap-1.5">
+      <div
+        className="pointer-events-auto mt-14 flex max-h-[calc(100dvh-3.75rem)] shrink-0 flex-col items-end gap-1.5 overflow-y-auto overscroll-contain pb-2 pl-1 [scrollbar-gutter:stable] [scrollbar-width:thin]"
+        onWheelCapture={(event) => event.stopPropagation()}
+      >
         <button
           type="button"
           onClick={handleHqToggle}
-          className="rounded-l-md border border-r-0 border-cyan-500/30 bg-[#06090d]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-cyan-300 shadow-xl backdrop-blur transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
-          aria-expanded={open}
-          aria-label={open ? "Collapse headquarters sidebar" : "Open headquarters sidebar"}
+          className="shrink-0 rounded-l-md border border-r-0 border-cyan-500/30 bg-[#06090d]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-cyan-300 shadow-xl backdrop-blur transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
+          aria-expanded={open && !analyticsOnly && !costsOnly}
+          aria-label={open && !analyticsOnly && !costsOnly ? "Collapse headquarters sidebar" : "Open headquarters sidebar"}
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
-            {open ? "COLLAPSE HQ" : "OPEN HQ"}
+            {open && !analyticsOnly && !costsOnly ? "COLLAPSE HQ" : "OPEN HQ"}
           </span>
         </button>
 
         <button
           type="button"
           onClick={handleMarketplace}
-          className="rounded-l-md border border-r-0 border-fuchsia-500/25 bg-[#100611]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-fuchsia-300/80 shadow-xl backdrop-blur transition-colors hover:border-fuchsia-400/45 hover:text-fuchsia-100"
+          className="shrink-0 rounded-l-md border border-r-0 border-fuchsia-500/25 bg-[#100611]/90 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] text-fuchsia-300/80 shadow-xl backdrop-blur transition-colors hover:border-fuchsia-400/45 hover:text-fuchsia-100"
           aria-label="Open marketplace"
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
@@ -123,13 +128,13 @@ export function HQSidebar({
 
         <button
           type="button"
-          onClick={handleAnalytics}
-          className={`rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
-            analyticsOnly && open && !aiCostsOpen
+          onClick={() => openTab("analytics")}
+          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
+            analyticsOnly && open
               ? "border-amber-400/50 bg-[#1a1206]/95 text-amber-200"
               : "border-amber-500/25 bg-[#120d06]/90 text-amber-300/80 hover:border-amber-400/45 hover:text-amber-100"
           }`}
-          aria-pressed={analyticsOnly && open && !aiCostsOpen}
+          aria-pressed={analyticsOnly && open}
           aria-label="Open analytics sidebar"
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
@@ -139,13 +144,13 @@ export function HQSidebar({
 
         <button
           type="button"
-          onClick={handleAiCosts}
-          className={`rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
-            aiCostsOpen
+          onClick={() => openTab("costs")}
+          className={`shrink-0 rounded-l-md border border-r-0 px-1.5 py-2.5 font-mono text-[10px] font-semibold tracking-[0.2em] shadow-xl backdrop-blur transition-colors ${
+            costsOnly && open
               ? "border-cyan-400/55 bg-[#071b24]/95 text-cyan-100"
               : "border-cyan-500/25 bg-[#071117]/90 text-cyan-300/80 hover:border-cyan-400/45 hover:text-cyan-100"
           }`}
-          aria-pressed={aiCostsOpen}
+          aria-pressed={costsOnly && open}
           aria-label="Open AI cost center"
         >
           <span className="block leading-none [writing-mode:vertical-rl]">
@@ -154,11 +159,21 @@ export function HQSidebar({
         </button>
       </div>
 
-      {open && !aiCostsOpen ? (
+      {open && costsOnly ? (
+        <div
+          className="pointer-events-auto h-full w-[min(94vw,390px)] border-l border-cyan-500/20 bg-black/90 shadow-2xl backdrop-blur"
+          onWheelCapture={(event) => event.stopPropagation()}
+        >
+          <AICostCenter onClose={onToggle} />
+        </div>
+      ) : null}
+
+      {open && !costsOnly ? (
         <div
           className={`pointer-events-auto flex h-full flex-col border-l border-cyan-500/20 bg-black/85 shadow-2xl backdrop-blur ${
             boardLikeWidth ? "w-[min(94vw,1180px)]" : "w-56"
           }`}
+          onWheelCapture={(event) => event.stopPropagation()}
         >
           <div className="border-b border-cyan-500/15 px-4 py-3">
             <div className="font-mono text-[10px] font-semibold tracking-[0.32em] text-cyan-300/80">
@@ -187,7 +202,7 @@ export function HQSidebar({
                 Build Company
               </button>
             ) : null}
-            {railOnly ? (
+            {analyticsOnly ? (
               <button
                 type="button"
                 onClick={() => onTabChange("inbox")}
@@ -224,7 +239,10 @@ export function HQSidebar({
                   >
                     <span>{TAB_LABELS[tab]}</span>
                     {showBadge ? (
-                      <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300" aria-label={`${inboxCount} unread`}>
+                      <span
+                        className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300"
+                        aria-label={`${inboxCount} unread`}
+                      >
                         {inboxCount}
                       </span>
                     ) : null}
@@ -242,12 +260,6 @@ export function HQSidebar({
           >
             {activePanel}
           </div>
-        </div>
-      ) : null}
-
-      {aiCostsOpen ? (
-        <div className="pointer-events-auto h-full w-[min(94vw,390px)] border-l border-cyan-500/20 bg-black/90 shadow-2xl backdrop-blur">
-          <AICostCenter onClose={() => setAiCostsOpen(false)} />
         </div>
       ) : null}
     </aside>
