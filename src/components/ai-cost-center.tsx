@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, WalletCards, X } from "lucide-react";
 
 type ProviderCost = {
@@ -26,10 +26,10 @@ type ApiError = {
   message?: string;
 };
 
-const BRAND_NAVY = "#172238";
 const BRAND_GOLD = "#F3B747";
 const FUTURE_CYAN = "#23D5FF";
-const PANEL_BG = "rgba(7, 14, 28, 0.96)";
+const PANEL_BG = "rgba(7, 14, 28, 0.985)";
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 const PROVIDERS: Array<{
   key: keyof CostSummary["providers"];
@@ -96,69 +96,67 @@ export function AICostCenter() {
     void load(false);
     const interval = window.setInterval(() => {
       void load(false);
-    }, 90_000);
+    }, AUTO_REFRESH_MS);
     return () => window.clearInterval(interval);
   }, [load]);
 
-  const pillValue = useMemo(() => {
-    if (data) return formatMoney(data.total_month, data.currency);
-    if (loading) return "ATUALIZANDO";
-    if (error) return "INDISPONÍVEL";
-    return "—";
-  }, [data, error, loading]);
+  const statusColor = error ? "#EF4444" : loading ? BRAND_GOLD : data ? "#22C55E" : "#64748B";
+  const statusLabel = error ? "Indisponível" : loading ? "Atualizando" : data ? "Disponível" : "Sem dados";
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        aria-label="Abrir painel de custos de inteligência artificial"
-        title="AI Cost Center"
+        aria-label={`${open ? "Fechar" : "Abrir"} painel de custos de inteligência artificial`}
+        aria-expanded={open}
+        title={`AI Cost Center · ${statusLabel}`}
         style={{
           position: "fixed",
-          top: 74,
-          right: 18,
-          zIndex: 90,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          minHeight: 40,
-          padding: "8px 13px",
-          borderRadius: 12,
-          border: `1px solid ${error ? "rgba(239,68,68,.55)" : "rgba(35,213,255,.38)"}`,
-          background: "linear-gradient(135deg, rgba(23,34,56,.97), rgba(7,14,28,.97))",
-          color: "#F8FAFC",
-          boxShadow: "0 12px 34px rgba(0,0,0,.36), inset 0 0 18px rgba(35,213,255,.05)",
+          top: 410,
+          right: 0,
+          zIndex: 30,
+          width: 31,
+          minHeight: 92,
+          padding: "9px 5px",
+          borderRadius: "6px 0 0 6px",
+          border: `1px solid ${error ? "rgba(239,68,68,.45)" : "rgba(35,213,255,.28)"}`,
+          borderRight: 0,
+          background: open
+            ? "rgba(10, 30, 39, 0.98)"
+            : "rgba(6, 16, 22, 0.93)",
+          color: FUTURE_CYAN,
+          boxShadow: "0 10px 26px rgba(0,0,0,.42)",
+          backdropFilter: "blur(10px)",
           cursor: "pointer",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 7,
           fontFamily: "var(--font-mono), monospace",
         }}
       >
-        <WalletCards size={16} color={BRAND_GOLD} />
+        <WalletCards size={13} color={BRAND_GOLD} />
         <span
           style={{
-            color: FUTURE_CYAN,
-            fontSize: 10,
+            writingMode: "vertical-rl",
+            lineHeight: 1,
+            fontSize: 9,
             fontWeight: 700,
-            letterSpacing: ".13em",
+            letterSpacing: ".17em",
           }}
         >
           AI COST
         </span>
         <span
+          aria-hidden="true"
           style={{
-            width: 1,
-            height: 18,
-            background: "rgba(255,255,255,.14)",
-          }}
-        />
-        <span style={{ fontSize: 12, fontWeight: 700 }}>{pillValue}</span>
-        <span
-          style={{
-            width: 7,
-            height: 7,
+            width: 6,
+            height: 6,
             borderRadius: 99,
-            background: error ? "#EF4444" : loading ? BRAND_GOLD : "#22C55E",
-            boxShadow: `0 0 10px ${error ? "#EF4444" : loading ? BRAND_GOLD : "#22C55E"}`,
+            background: statusColor,
+            boxShadow: `0 0 8px ${statusColor}`,
           }}
         />
       </button>
@@ -168,28 +166,33 @@ export function AICostCenter() {
           aria-label="Custos de inteligência artificial"
           style={{
             position: "fixed",
-            top: 124,
-            right: 18,
-            zIndex: 95,
-            width: "min(390px, calc(100vw - 36px))",
-            overflow: "hidden",
-            borderRadius: 16,
+            top: 56,
+            right: 31,
+            bottom: 16,
+            zIndex: 29,
+            width: "min(390px, calc(100vw - 47px))",
+            overflowY: "auto",
+            overflowX: "hidden",
+            borderRadius: "14px 0 0 14px",
             border: "1px solid rgba(35,213,255,.28)",
             background: PANEL_BG,
             color: "#F8FAFC",
-            boxShadow: "0 24px 80px rgba(0,0,0,.52), inset 0 0 45px rgba(35,213,255,.035)",
+            boxShadow: "-18px 24px 70px rgba(0,0,0,.55), inset 0 0 45px rgba(35,213,255,.035)",
             backdropFilter: "blur(16px)",
             fontFamily: "var(--font-sans), sans-serif",
           }}
         >
           <div
             style={{
+              position: "sticky",
+              top: 0,
+              zIndex: 2,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               padding: "15px 16px 13px",
               borderBottom: "1px solid rgba(255,255,255,.08)",
-              background: "linear-gradient(90deg, rgba(243,183,71,.08), rgba(35,213,255,.06))",
+              background: "linear-gradient(90deg, rgba(18,25,38,.99), rgba(7,14,28,.99))",
             }}
           >
             <div>
@@ -248,10 +251,38 @@ export function AICostCenter() {
             </div>
           </div>
 
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              margin: "12px 14px 0",
+              padding: "8px 10px",
+              borderRadius: 8,
+              border: `1px solid ${error ? "rgba(239,68,68,.22)" : "rgba(255,255,255,.07)"}`,
+              background: error ? "rgba(127,29,29,.12)" : "rgba(255,255,255,.025)",
+              color: error ? "#FCA5A5" : "#94A3B8",
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: 10,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                flex: "0 0 auto",
+                borderRadius: 99,
+                background: statusColor,
+                boxShadow: `0 0 8px ${statusColor}`,
+              }}
+            />
+            <span>{loading ? "Consultando OpenClaw..." : statusLabel}</span>
+          </div>
+
           {error ? (
             <div
               style={{
-                margin: 14,
+                margin: "10px 14px 0",
                 padding: 12,
                 borderRadius: 10,
                 border: "1px solid rgba(239,68,68,.28)",
@@ -259,6 +290,7 @@ export function AICostCenter() {
                 color: "#FCA5A5",
                 fontSize: 12,
                 lineHeight: 1.45,
+                overflowWrap: "anywhere",
               }}
             >
               {error}
