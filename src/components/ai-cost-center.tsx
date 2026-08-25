@@ -28,8 +28,8 @@ type ApiError = {
 
 const BRAND_GOLD = "#F3B747";
 const FUTURE_CYAN = "#23D5FF";
-const PANEL_BG = "rgba(7, 14, 28, 0.985)";
-const AUTO_REFRESH_MS = 5 * 60 * 1000;
+const PANEL_BG = "rgba(7, 14, 28, 0.97)";
+const AUTO_REFRESH_MS = 300_000;
 
 const PROVIDERS: Array<{
   key: keyof CostSummary["providers"];
@@ -71,6 +71,7 @@ export function AICostCenter() {
   const [data, setData] = useState<CostSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadedOnce, setLoadedOnce] = useState(false);
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
@@ -88,17 +89,19 @@ export function AICostCenter() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível consultar os custos de IA.");
     } finally {
+      setLoadedOnce(true);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load(false);
+    if (!open) return;
+    if (!loadedOnce && !loading) void load(false);
     const interval = window.setInterval(() => {
       void load(false);
     }, AUTO_REFRESH_MS);
     return () => window.clearInterval(interval);
-  }, [load]);
+  }, [open, loadedOnce, loading, load]);
 
   const statusColor = error ? "#EF4444" : loading ? BRAND_GOLD : data ? "#22C55E" : "#64748B";
   const statusLabel = error ? "Indisponível" : loading ? "Atualizando" : data ? "Disponível" : "Sem dados";
@@ -122,9 +125,7 @@ export function AICostCenter() {
           borderRadius: "6px 0 0 6px",
           border: `1px solid ${error ? "rgba(239,68,68,.45)" : "rgba(35,213,255,.28)"}`,
           borderRight: 0,
-          background: open
-            ? "rgba(10, 30, 39, 0.98)"
-            : "rgba(6, 16, 22, 0.93)",
+          background: open ? "rgba(10,30,39,.98)" : "rgba(6,16,22,.93)",
           color: FUTURE_CYAN,
           boxShadow: "0 10px 26px rgba(0,0,0,.42)",
           backdropFilter: "blur(10px)",
@@ -138,15 +139,7 @@ export function AICostCenter() {
         }}
       >
         <WalletCards size={13} color={BRAND_GOLD} />
-        <span
-          style={{
-            writingMode: "vertical-rl",
-            lineHeight: 1,
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: ".17em",
-          }}
-        >
+        <span style={{ writingMode: "vertical-rl", lineHeight: 1, fontSize: 9, fontWeight: 700, letterSpacing: ".17em" }}>
           AI COST
         </span>
         <span
@@ -192,23 +185,17 @@ export function AICostCenter() {
               justifyContent: "space-between",
               padding: "15px 16px 13px",
               borderBottom: "1px solid rgba(255,255,255,.08)",
-              background: "linear-gradient(90deg, rgba(18,25,38,.99), rgba(7,14,28,.99))",
+              background: "linear-gradient(90deg, rgba(17,27,43,.99), rgba(7,14,28,.99))",
             }}
           >
             <div>
-              <div
-                style={{
-                  color: BRAND_GOLD,
-                  fontFamily: "var(--font-mono), monospace",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: ".15em",
-                  marginBottom: 4,
-                }}
-              >
+              <div style={{ color: BRAND_GOLD, fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 700, letterSpacing: ".15em", marginBottom: 4 }}>
                 MULTIMÓVEIS · AI OPS
               </div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>Custos IA</div>
+              <div style={{ marginTop: 3, color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 9 }}>
+                {statusLabel.toUpperCase()}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 7 }}>
               <button
@@ -216,17 +203,7 @@ export function AICostCenter() {
                 onClick={() => void load(true)}
                 disabled={loading}
                 aria-label="Atualizar custos"
-                style={{
-                  width: 34,
-                  height: 34,
-                  display: "grid",
-                  placeItems: "center",
-                  borderRadius: 9,
-                  border: "1px solid rgba(35,213,255,.24)",
-                  background: "rgba(35,213,255,.06)",
-                  color: FUTURE_CYAN,
-                  cursor: loading ? "wait" : "pointer",
-                }}
+                style={{ width: 34, height: 34, display: "grid", placeItems: "center", borderRadius: 9, border: "1px solid rgba(35,213,255,.24)", background: "rgba(35,213,255,.06)", color: FUTURE_CYAN, cursor: loading ? "wait" : "pointer" }}
               >
                 <RefreshCw size={15} style={{ opacity: loading ? 0.55 : 1 }} />
               </button>
@@ -234,65 +211,21 @@ export function AICostCenter() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Fechar painel de custos"
-                style={{
-                  width: 34,
-                  height: 34,
-                  display: "grid",
-                  placeItems: "center",
-                  borderRadius: 9,
-                  border: "1px solid rgba(255,255,255,.1)",
-                  background: "rgba(255,255,255,.04)",
-                  color: "#CBD5E1",
-                  cursor: "pointer",
-                }}
+                style={{ width: 34, height: 34, display: "grid", placeItems: "center", borderRadius: 9, border: "1px solid rgba(255,255,255,.1)", background: "rgba(255,255,255,.04)", color: "#CBD5E1", cursor: "pointer" }}
               >
                 <X size={16} />
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              margin: "12px 14px 0",
-              padding: "8px 10px",
-              borderRadius: 8,
-              border: `1px solid ${error ? "rgba(239,68,68,.22)" : "rgba(255,255,255,.07)"}`,
-              background: error ? "rgba(127,29,29,.12)" : "rgba(255,255,255,.025)",
-              color: error ? "#FCA5A5" : "#94A3B8",
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: 10,
-            }}
-          >
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                flex: "0 0 auto",
-                borderRadius: 99,
-                background: statusColor,
-                boxShadow: `0 0 8px ${statusColor}`,
-              }}
-            />
-            <span>{loading ? "Consultando OpenClaw..." : statusLabel}</span>
-          </div>
+          {loading && !data ? (
+            <div style={{ margin: 14, padding: 12, borderRadius: 10, border: "1px solid rgba(243,183,71,.24)", background: "rgba(243,183,71,.07)", color: "#FDE68A", fontSize: 12 }}>
+              Consultando os plugins de custo no OpenClaw. Isso pode levar alguns minutos.
+            </div>
+          ) : null}
 
           {error ? (
-            <div
-              style={{
-                margin: "10px 14px 0",
-                padding: 12,
-                borderRadius: 10,
-                border: "1px solid rgba(239,68,68,.28)",
-                background: "rgba(127,29,29,.18)",
-                color: "#FCA5A5",
-                fontSize: 12,
-                lineHeight: 1.45,
-                overflowWrap: "anywhere",
-              }}
-            >
+            <div style={{ margin: 14, padding: 12, borderRadius: 10, border: "1px solid rgba(239,68,68,.28)", background: "rgba(127,29,29,.18)", color: "#FCA5A5", fontSize: 12, lineHeight: 1.45 }}>
               {error}
             </div>
           ) : null}
@@ -301,32 +234,10 @@ export function AICostCenter() {
             {PROVIDERS.map((provider) => {
               const cost = data?.providers[provider.key] ?? null;
               return (
-                <div
-                  key={provider.key}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.35fr .9fr .9fr .9fr",
-                    alignItems: "center",
-                    gap: 8,
-                    minHeight: 61,
-                    padding: "10px 10px",
-                    marginBottom: 8,
-                    borderRadius: 11,
-                    border: "1px solid rgba(255,255,255,.075)",
-                    background: "rgba(255,255,255,.028)",
-                  }}
-                >
+                <div key={provider.key} style={{ display: "grid", gridTemplateColumns: "1.35fr .9fr .9fr .9fr", alignItems: "center", gap: 8, minHeight: 61, padding: "10px", marginBottom: 8, borderRadius: 11, border: "1px solid rgba(255,255,255,.075)", background: "rgba(255,255,255,.028)" }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                      <span
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: 99,
-                          background: provider.accent,
-                          boxShadow: `0 0 9px ${provider.accent}`,
-                        }}
-                      />
+                      <span style={{ width: 7, height: 7, borderRadius: 99, background: provider.accent, boxShadow: `0 0 9px ${provider.accent}` }} />
                       <strong style={{ fontSize: 12 }}>{provider.label}</strong>
                     </div>
                   </div>
@@ -338,39 +249,12 @@ export function AICostCenter() {
             })}
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              padding: "7px 14px 14px",
-            }}
-          >
-            <TotalCard
-              label="TOTAL HOJE"
-              value={formatMoney(data?.total_today ?? null, data?.currency ?? "USD")}
-              accent={FUTURE_CYAN}
-            />
-            <TotalCard
-              label="TOTAL MÊS"
-              value={formatMoney(data?.total_month ?? null, data?.currency ?? "USD")}
-              accent={BRAND_GOLD}
-            />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "7px 14px 14px" }}>
+            <TotalCard label="TOTAL HOJE" value={formatMoney(data?.total_today ?? null, data?.currency ?? "USD")} accent={FUTURE_CYAN} />
+            <TotalCard label="TOTAL MÊS" value={formatMoney(data?.total_month ?? null, data?.currency ?? "USD")} accent={BRAND_GOLD} />
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              padding: "10px 15px 12px",
-              borderTop: "1px solid rgba(255,255,255,.07)",
-              color: "#64748B",
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: 9,
-              letterSpacing: ".06em",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "10px 15px 12px", borderTop: "1px solid rgba(255,255,255,.07)", color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 9, letterSpacing: ".06em" }}>
             <span>OPENCLAW PLUGINS</span>
             <span>{data ? `ATUALIZADO ${formatUpdatedAt(data.updated_at)}` : loading ? "CONSULTANDO..." : "SEM DADOS"}</span>
           </div>
@@ -383,75 +267,17 @@ export function AICostCenter() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ textAlign: "right", minWidth: 0 }}>
-      <div
-        style={{
-          color: "#64748B",
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: 8,
-          letterSpacing: ".08em",
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        title={value}
-        style={{
-          color: "#E2E8F0",
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: 10,
-          fontWeight: 600,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {value}
-      </div>
+      <div style={{ color: "#64748B", fontFamily: "var(--font-mono), monospace", fontSize: 8, letterSpacing: ".08em", marginBottom: 4 }}>{label}</div>
+      <div title={value} style={{ color: "#E2E8F0", fontFamily: "var(--font-mono), monospace", fontSize: 10, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
     </div>
   );
 }
 
-function TotalCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-}) {
+function TotalCard({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div
-      style={{
-        padding: "12px 13px",
-        borderRadius: 11,
-        border: `1px solid ${accent}33`,
-        background: `${accent}0D`,
-      }}
-    >
-      <div
-        style={{
-          color: accent,
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: ".11em",
-          marginBottom: 5,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          color: "#F8FAFC",
-          fontFamily: "var(--font-mono), monospace",
-          fontSize: 18,
-          fontWeight: 700,
-        }}
-      >
-        {value}
-      </div>
+    <div style={{ padding: "12px 13px", borderRadius: 11, border: `1px solid ${accent}33`, background: `${accent}0D` }}>
+      <div style={{ color: accent, fontFamily: "var(--font-mono), monospace", fontSize: 9, fontWeight: 700, letterSpacing: ".11em", marginBottom: 5 }}>{label}</div>
+      <div style={{ color: "#F8FAFC", fontFamily: "var(--font-mono), monospace", fontSize: 18, fontWeight: 700 }}>{value}</div>
     </div>
   );
 }
