@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { AICostCenter } from "@/components/ai-cost-center";
 import { RunningAvatarLoader } from "@/features/agents/components/RunningAvatarLoader";
 import { AgentStoreProvider } from "@/features/agents/state/store";
 import { OfficeScreen } from "@/features/office/screens/OfficeScreen";
@@ -39,7 +38,6 @@ export default function OfficePage() {
       <Suspense fallback={<OfficeLoadingFallback />}>
         <OfficeScreen showOpenClawConsole={showOpenClawConsole} />
       </Suspense>
-      <AICostCenter />
     </AgentStoreProvider>
   );
 }
