@@ -121,6 +121,7 @@ const localDateKey = (date = new Date()) => {
 };
 
 const isUsd = (unit: string | undefined) => (unit ?? "").trim().toUpperCase() === "USD";
+const isCreditUnit = (unit: string | undefined) => /credit|cr[eé]dito/i.test(unit ?? "");
 
 const summaryAmount = (
   summary: string | undefined,
@@ -202,6 +203,9 @@ const resolveMonth = (snapshot: ProviderUsageSnapshot): MetricValue => {
 
   const budget = budgetEntry(snapshot);
   if (budget?.type === "budget") {
+    if (isCreditUnit(budget.unit)) {
+      return { text: `${formatNumber(budget.used)} / ${formatNumber(budget.limit)}` };
+    }
     return {
       text: `${formatUnitAmount(budget.used, budget.unit)} / ${formatUnitAmount(budget.limit, budget.unit)}`,
     };
@@ -233,7 +237,11 @@ const resolveBalance = (snapshot: ProviderUsageSnapshot): MetricValue => {
   }
   const budget = budgetEntry(snapshot);
   if (budget?.type === "budget") {
-    return { text: formatUnitAmount(Math.max(0, budget.limit - budget.used), budget.unit) };
+    const remaining = Math.max(0, budget.limit - budget.used);
+    if (isCreditUnit(budget.unit)) {
+      return { text: `${formatNumber(remaining)} restantes` };
+    }
+    return { text: formatUnitAmount(remaining, budget.unit) };
   }
   const quota = snapshot.windows?.[0];
   if (quota && Number.isFinite(quota.usedPercent)) {
