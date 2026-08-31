@@ -166,7 +166,8 @@ export function astar(
   };
 
   let { c: sc, r: sr } = toCell(sx, sy);
-  let { c: ec, r: er } = toCell(ex, ey);
+  const requestedEndCell = toCell(ex, ey);
+  let { c: ec, r: er } = requestedEndCell;
   const startFree = findFree(sc, sr);
   const endFree = findFree(ec, er);
   if (!startFree || !endFree) return [];
@@ -174,11 +175,21 @@ export function astar(
   sr = startFree.r;
   ec = endFree.c;
   er = endFree.r;
+
+  // If the requested destination lands inside a navigation blocker (for
+  // example a desk), A* moves the endpoint to the nearest free cell. Keep that
+  // safe endpoint for the final waypoint instead of snapping back to the raw
+  // blocked pixel — the old behavior is what let agents visually enter desks.
+  const endpointAdjusted =
+    ec !== requestedEndCell.c || er !== requestedEndCell.r;
+  const safeEndpoint = endpointAdjusted
+    ? { x: cellCx(ec), y: cellCy(er) }
+    : { x: ex, y: ey };
+
   // Same nav cell: start and end are close enough that A* has no grid edges
-  // to traverse. The destination is still reachable — return a single-waypoint
-  // path to the exact target pixel so the movement layer can make the final
-  // fine-grained adjustment instead of staying put.
-  if (sc === ec && sr === er) return [{ x: ex, y: ey }];
+  // to traverse. Return the validated endpoint so a blocked raw destination
+  // cannot bypass the navigation grid.
+  if (sc === ec && sr === er) return [safeEndpoint];
 
   const nodeCount = GRID_COLS * GRID_ROWS;
   const gCost = new Float32Array(nodeCount).fill(Infinity);
@@ -254,8 +265,8 @@ export function astar(
         node = parent[node];
       }
       path.reverse();
-      if (path.length) path[path.length - 1] = { x: ex, y: ey };
-      else path.push({ x: ex, y: ey });
+      if (path.length) path[path.length - 1] = safeEndpoint;
+      else path.push(safeEndpoint);
       return path;
     }
 
