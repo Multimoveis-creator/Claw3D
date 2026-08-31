@@ -118,8 +118,8 @@ export const ITEM_METADATA: Record<string, { blocksNavigation: boolean; navPaddi
   couch_v:         { blocksNavigation: true  },
   beanbag:         { blocksNavigation: true  }, // large floor seat (issue #4)
   // ── desks / workstations ──────────────────────────────────────────────────
-  desk_cubicle:    { blocksNavigation: true, navPadding: 0 }, // blocks nav with zero padding (tight to desk body)
-  executive_desk:  { blocksNavigation: true  },
+  desk_cubicle:    { blocksNavigation: true, navPadding: 18 }, // leave body clearance so agents do not visually clip through desks
+  executive_desk:  { blocksNavigation: true, navPadding: 18 },
   // ── tables ────────────────────────────────────────────────────────────────
   round_table:     { blocksNavigation: true  },
   table_rect:      { blocksNavigation: true  },
