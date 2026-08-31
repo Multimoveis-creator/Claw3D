@@ -10,8 +10,27 @@ import {
 import { ensurePersonalOfficeWing } from "@/features/retro-office/core/personalOffices";
 import type { FurnitureItem } from "@/features/retro-office/core/types";
 
+export const ACTIVE_OFFICE_LAYOUT_NAMESPACE_KEY =
+  "claw3d-active-office-layout-namespace-v1";
+
 const resolveStorageKey = (key: string, namespace = "default") =>
   namespace === "default" ? key : `${key}:${namespace}`;
+
+const markActiveLayoutNamespace = (namespace: string) => {
+  try {
+    localStorage.setItem(ACTIVE_OFFICE_LAYOUT_NAMESPACE_KEY, namespace);
+  } catch {
+    /* ignore */
+  }
+};
+
+export const readActiveLayoutNamespace = (): string => {
+  try {
+    return localStorage.getItem(ACTIVE_OFFICE_LAYOUT_NAMESPACE_KEY) || "default";
+  } catch {
+    return "default";
+  }
+};
 
 const hasStorageFlag = (key: string, namespace = "default") => {
   try {
@@ -31,6 +50,7 @@ const markStorageFlag = (key: string, namespace = "default") => {
 
 export const saveFurniture = (items: FurnitureItem[], namespace = "default") => {
   try {
+    markActiveLayoutNamespace(namespace);
     const normalizedItems = ensurePersonalOfficeWing(items);
     localStorage.setItem(
       resolveStorageKey(STORAGE_KEY, namespace),
@@ -43,6 +63,7 @@ export const saveFurniture = (items: FurnitureItem[], namespace = "default") => 
 
 export const loadFurniture = (namespace = "default"): FurnitureItem[] | null => {
   try {
+    markActiveLayoutNamespace(namespace);
     const raw = localStorage.getItem(resolveStorageKey(STORAGE_KEY, namespace));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
@@ -53,6 +74,9 @@ export const loadFurniture = (namespace = "default"): FurnitureItem[] | null => 
     return null;
   }
 };
+
+export const loadActiveFurniture = (): FurnitureItem[] | null =>
+  loadFurniture(readActiveLayoutNamespace());
 
 export const hasAtmMigrationApplied = (namespace = "default") =>
   hasStorageFlag(ATM_MIGRATION_KEY, namespace);

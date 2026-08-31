@@ -4,10 +4,14 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
 import {
+  CANVAS_H,
+  CANVAS_W,
   PING_PONG_BALL_RADIUS,
   PING_PONG_TABLE_SURFACE_Y,
+  SCALE,
 } from "@/features/retro-office/core/constants";
 import { toWorld } from "@/features/retro-office/core/geometry";
+import { OFFICE_SEAT_LOCATION_EVENT } from "@/features/retro-office/core/personalOffices";
 import type { RenderAgent } from "@/features/retro-office/core/types";
 
 export function FloorRaycaster({
@@ -26,7 +30,6 @@ export function FloorRaycaster({
   );
 
   useEffect(() => {
-    if (!enabled) return;
     const target = new THREE.Vector3();
     const ndc = new THREE.Vector2();
 
@@ -44,19 +47,31 @@ export function FloorRaycaster({
     };
 
     const handleMove = (event: PointerEvent) => {
+      if (!enabled) return;
       const point = project(event.clientX, event.clientY);
       if (point) onMove(point.x, point.z);
     };
     const handleClick = (event: MouseEvent) => {
       const point = project(event.clientX, event.clientY);
-      if (point) onClick(point.x, point.z);
+      if (!point) return;
+      if (enabled) {
+        onClick(point.x, point.z);
+        return;
+      }
+      const x = point.x / SCALE + CANVAS_W * 0.5;
+      const y = point.z / SCALE + CANVAS_H * 0.5;
+      window.dispatchEvent(
+        new CustomEvent(OFFICE_SEAT_LOCATION_EVENT, {
+          detail: { x, y },
+        }),
+      );
     };
 
-    gl.domElement.addEventListener("pointermove", handleMove);
     gl.domElement.addEventListener("click", handleClick);
+    if (enabled) gl.domElement.addEventListener("pointermove", handleMove);
     return () => {
-      gl.domElement.removeEventListener("pointermove", handleMove);
       gl.domElement.removeEventListener("click", handleClick);
+      gl.domElement.removeEventListener("pointermove", handleMove);
     };
   }, [enabled, camera, raycaster, gl, floorPlane, onMove, onClick]);
 

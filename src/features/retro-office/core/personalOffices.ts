@@ -11,10 +11,18 @@ import type {
 } from "@/features/retro-office/core/types";
 
 export type AgentOfficeMode = "roaming" | "seated";
+export type AgentSeatAssignment = FacingPoint & {
+  label?: string;
+};
 
 export const AGENT_OFFICE_MODE_STORAGE_KEY =
   "claw3d-agent-office-modes-v1";
 export const AGENT_OFFICE_MODE_EVENT = "claw3d-agent-office-mode-change";
+export const AGENT_SEAT_ASSIGNMENT_STORAGE_KEY =
+  "claw3d-agent-seat-assignments-v1";
+export const AGENT_SEAT_ASSIGNMENT_EVENT =
+  "claw3d-agent-seat-assignment-change";
+export const OFFICE_SEAT_LOCATION_EVENT = "claw3d-office-seat-location-click";
 
 const PERSONAL_OFFICE_MARKER_PREFIX = "personal-office:";
 const ROOM_X = 1550;
@@ -42,7 +50,6 @@ const buildRoomFurniture = (params: {
   const marker = `${PERSONAL_OFFICE_MARKER_PREFIX}${roomIndex}`;
   const doorTop = top + 55;
   const doorBottom = doorTop + DOOR_LENGTH;
-
   const deskY = top + 82;
   const seatY = top + 62;
 
@@ -228,7 +235,21 @@ export const ensurePersonalOfficeWing = (
 const isAgentOfficeMode = (value: unknown): value is AgentOfficeMode =>
   value === "roaming" || value === "seated";
 
+const isAgentSeatAssignment = (value: unknown): value is AgentSeatAssignment => {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AgentSeatAssignment>;
+  return (
+    typeof candidate.x === "number" &&
+    Number.isFinite(candidate.x) &&
+    typeof candidate.y === "number" &&
+    Number.isFinite(candidate.y) &&
+    typeof candidate.facing === "number" &&
+    Number.isFinite(candidate.facing)
+  );
+};
+
 let inMemoryModes: Record<string, AgentOfficeMode> | null = null;
+let inMemorySeatAssignments: Record<string, AgentSeatAssignment> | null = null;
 
 const loadModes = (): Record<string, AgentOfficeMode> => {
   if (inMemoryModes) return inMemoryModes;
@@ -250,11 +271,42 @@ const loadModes = (): Record<string, AgentOfficeMode> => {
   return inMemoryModes;
 };
 
+const loadSeatAssignments = (): Record<string, AgentSeatAssignment> => {
+  if (inMemorySeatAssignments) return inMemorySeatAssignments;
+  if (typeof window === "undefined") {
+    inMemorySeatAssignments = {};
+    return inMemorySeatAssignments;
+  }
+  try {
+    const raw = window.localStorage.getItem(AGENT_SEAT_ASSIGNMENT_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    inMemorySeatAssignments = Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, AgentSeatAssignment] =>
+          isAgentSeatAssignment(entry[1]),
+      ),
+    );
+  } catch {
+    inMemorySeatAssignments = {};
+  }
+  return inMemorySeatAssignments;
+};
+
 export const getDefaultAgentOfficeMode = (agentId: string): AgentOfficeMode =>
   normalizeAgentId(agentId) === "main" ? "seated" : "roaming";
 
 export const readAgentOfficeMode = (agentId: string): AgentOfficeMode =>
   loadModes()[agentId] ?? getDefaultAgentOfficeMode(agentId);
+
+export const readAgentSeatAssignment = (
+  agentId: string,
+): AgentSeatAssignment | null => loadSeatAssignments()[agentId] ?? null;
+
+export const resolveAgentSeat = (
+  agentId: string,
+  fallbackIndex = 0,
+): AgentSeatAssignment | FacingPoint | null =>
+  readAgentSeatAssignment(agentId) ?? resolvePersonalOfficeSeat(agentId, fallbackIndex);
 
 export const writeAgentOfficeMode = (
   agentId: string,
@@ -271,6 +323,48 @@ export const writeAgentOfficeMode = (
   window.dispatchEvent(
     new CustomEvent(AGENT_OFFICE_MODE_EVENT, {
       detail: { agentId, mode },
+    }),
+  );
+};
+
+export const writeAgentSeatAssignment = (
+  agentId: string,
+  assignment: AgentSeatAssignment,
+): void => {
+  const next = { ...loadSeatAssignments(), [agentId]: assignment };
+  inMemorySeatAssignments = next;
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      AGENT_SEAT_ASSIGNMENT_STORAGE_KEY,
+      JSON.stringify(next),
+    );
+  } catch {
+    /* ignore hardened/private browser storage failures */
+  }
+  window.dispatchEvent(
+    new CustomEvent(AGENT_SEAT_ASSIGNMENT_EVENT, {
+      detail: { agentId, assignment },
+    }),
+  );
+};
+
+export const clearAgentSeatAssignment = (agentId: string): void => {
+  const next = { ...loadSeatAssignments() };
+  delete next[agentId];
+  inMemorySeatAssignments = next;
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      AGENT_SEAT_ASSIGNMENT_STORAGE_KEY,
+      JSON.stringify(next),
+    );
+  } catch {
+    /* ignore hardened/private browser storage failures */
+  }
+  window.dispatchEvent(
+    new CustomEvent(AGENT_SEAT_ASSIGNMENT_EVENT, {
+      detail: { agentId, assignment: null },
     }),
   );
 };
