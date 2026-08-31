@@ -13,6 +13,7 @@ import {
   resolvePersonalOfficeSeat,
 } from "@/features/retro-office/core/personalOffices";
 import type { RenderAgent } from "@/features/retro-office/core/types";
+import { syncAgentOfficeModePanel } from "@/features/retro-office/systems/AgentOfficeModePanel";
 
 type ApplyAgentCollisionBumpsArgs = {
   agents: RenderAgent[];
@@ -60,6 +61,7 @@ export function applyAgentCollisionBumps({
   agents,
   now,
 }: ApplyAgentCollisionBumpsArgs): RenderAgent[] {
+  syncAgentOfficeModePanel(agents);
   const moved = applyPersonalOfficeModes(agents);
   const collisionCellSize = AGENT_RADIUS * 4;
   const collisionBuckets = new Map<string, number[]>();
