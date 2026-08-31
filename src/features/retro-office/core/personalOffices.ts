@@ -145,7 +145,9 @@ export const PERSONAL_OFFICE_SLOTS: PersonalOfficeSlot[] = [
     key: "ceo",
     title: "Executive Office",
     preferredAgentIds: ["main", "jhow"],
-    seat: { x: 1690, y: ROOM_TOPS[0] + 62, facing: 0 },
+    // Keep the target just above the executive desk's grid cell. Visually this
+    // still lands on the chair, but it remains reachable by A*.
+    seat: { x: 1690, y: ROOM_TOPS[0] + 59, facing: 0 },
     executive: true,
   },
   {

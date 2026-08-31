@@ -99,9 +99,15 @@ export function buildNavGrid(furniture: FurnitureItem[]): NavGrid {
     const x2 = bounds.x + bounds.w + itemPad;
     const y2 = bounds.y + bounds.h + itemPad;
     const c1 = Math.max(0, Math.floor(x1 / GRID_CELL));
-    const c2 = Math.min(GRID_COLS - 1, Math.floor(x2 / GRID_CELL));
+    const c2 = Math.min(
+      GRID_COLS - 1,
+      Math.max(c1, Math.ceil(x2 / GRID_CELL) - 1),
+    );
     const r1 = Math.max(0, Math.floor(y1 / GRID_CELL));
-    const r2 = Math.min(GRID_ROWS - 1, Math.floor(y2 / GRID_CELL));
+    const r2 = Math.min(
+      GRID_ROWS - 1,
+      Math.max(r1, Math.ceil(y2 / GRID_CELL) - 1),
+    );
     for (let row = r1; row <= r2; row += 1) {
       for (let column = c1; column <= c2; column += 1) {
         grid[row * GRID_COLS + column] = 1;
@@ -181,19 +187,12 @@ export function astar(
   ec = endFree.c;
   er = endFree.r;
 
-  // If the requested destination lands inside a navigation blocker (for
-  // example a desk), A* moves the endpoint to the nearest free cell. Keep that
-  // safe endpoint for the final waypoint instead of snapping back to the raw
-  // blocked pixel — the old behavior is what let agents visually enter desks.
   const endpointAdjusted =
     ec !== requestedEndCell.c || er !== requestedEndCell.r;
   const safeEndpoint = endpointAdjusted
     ? { x: cellCx(ec), y: cellCy(er) }
     : { x: ex, y: ey };
 
-  // Same nav cell: start and end are close enough that A* has no grid edges
-  // to traverse. Return the validated endpoint so a blocked raw destination
-  // cannot bypass the navigation grid.
   if (sc === ec && sr === er) return [safeEndpoint];
 
   const nodeCount = GRID_COLS * GRID_ROWS;
@@ -291,9 +290,6 @@ export function astar(
       const nextIndex = nextRow * GRID_COLS + nextColumn;
       if (visited[nextIndex] || grid[nextIndex]) continue;
 
-      // For diagonal moves, require both orthogonal neighbours to be free so
-      // agents cannot clip through the corner of a blocked cell (issue #6).
-      // E.g. moving NE (dc=+1, dr=-1) requires N (dc=0, dr=-1) and E (dc=+1, dr=0) to be clear.
       if (columnOffset !== 0 && rowOffset !== 0) {
         const orthogonalA =
           (currentRow + rowOffset) * GRID_COLS + currentColumn;
@@ -325,8 +321,6 @@ export const getDeskLocations = (items: FurnitureItem[]) =>
     }));
 
 export const getMeetingSeatLocations = (items: FurnitureItem[]) => {
-  // Meeting seats are inferred from chair placement in the conference area so standup
-  // gathering follows the authored layout instead of a hardcoded attendee list.
   const chairs = items
     .filter(
       (item) =>
@@ -380,7 +374,6 @@ export const getGymWorkoutLocations = (
     )
     .sort((left, right) => left.y - right.y || left.x - right.x)
     .map((item) => {
-      // Each workout target is an agent standing point plus a facing direction toward equipment.
       const bounds = getItemBounds(item);
       const equipmentCenterX = bounds.x + bounds.w / 2;
       const equipmentCenterY = bounds.y + bounds.h / 2;
@@ -465,8 +458,6 @@ export const getQaLabStations = (
     )
     .sort((left, right) => left.y - right.y || left.x - right.x)
     .map((item) => {
-      // QA stations follow the same pattern as gym targets: derive a nearby standing point
-      // from authored furniture so scene motion stays data-driven.
       const bounds = getItemBounds(item);
       const stationCenterX = bounds.x + bounds.w / 2;
       const stationCenterY = bounds.y + bounds.h / 2;

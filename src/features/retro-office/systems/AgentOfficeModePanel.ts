@@ -328,12 +328,15 @@ const renderPanel = (agents: RenderAgent[]) => {
       waitingForSeatLocation = false;
       pendingSeatLocation = null;
       for (const agent of agents) {
+        // Workstations means the agent's own private office, not a temporary
+        // chair selected through Assign seat.
+        clearAgentSeatAssignment(agent.id);
         writeAgentOfficeMode(agent.id, "seated");
       }
       lastSignature = "";
     },
   );
-  workstationButton.title = "Send every agent to their assigned workstation";
+  workstationButton.title = "Send every agent to their private workstation";
   actionRow.appendChild(workstationButton);
   body.appendChild(actionRow);
 

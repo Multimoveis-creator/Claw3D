@@ -110,7 +110,7 @@ export const getItemBaseSize = (item: FurnitureItem) => {
  */
 export const ITEM_METADATA: Record<string, { blocksNavigation: boolean; navPadding?: number }> = {
   // ── structural ────────────────────────────────────────────────────────────
-  wall:            { blocksNavigation: true  },
+  wall:            { blocksNavigation: true, navPadding: 0 },
   door:            { blocksNavigation: false }, // passable
   // ── seating / lounge ──────────────────────────────────────────────────────
   chair:           { blocksNavigation: false }, // passable / agents sit on them
@@ -119,10 +119,10 @@ export const ITEM_METADATA: Record<string, { blocksNavigation: boolean; navPaddi
   beanbag:         { blocksNavigation: true  }, // large floor seat (issue #4)
   // ── desks / workstations ──────────────────────────────────────────────────
   desk_cubicle:    { blocksNavigation: true, navPadding: 18 }, // leave body clearance so agents do not visually clip through desks
-  executive_desk:  { blocksNavigation: true, navPadding: 18 },
+  executive_desk:  { blocksNavigation: true, navPadding: 0 },
   // ── tables ────────────────────────────────────────────────────────────────
   round_table:     { blocksNavigation: true  },
-  table_rect:      { blocksNavigation: true  },
+  table_rect:      { blocksNavigation: true, navPadding: 0 },
   pingpong:        { blocksNavigation: true  },
   // ── storage / shelving ────────────────────────────────────────────────────
   bookshelf:       { blocksNavigation: true  },
