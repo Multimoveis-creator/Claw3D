@@ -8,6 +8,10 @@ import {
   REMOTE_ROAM_POINTS,
 } from "@/features/retro-office/core/district";
 import { ROAM_POINTS } from "@/features/retro-office/core/navigation";
+import {
+  readAgentOfficeMode,
+  resolvePersonalOfficeSeat,
+} from "@/features/retro-office/core/personalOffices";
 import type { RenderAgent } from "@/features/retro-office/core/types";
 
 type ApplyAgentCollisionBumpsArgs = {
@@ -15,11 +19,48 @@ type ApplyAgentCollisionBumpsArgs = {
   now: number;
 };
 
+const applyPersonalOfficeModes = (agents: RenderAgent[]): RenderAgent[] =>
+  agents.map((agent, index) => {
+    if ("role" in agent && agent.role === "janitor") return agent;
+    if (isRemoteOfficeAgentId(agent.id)) return agent;
+    if (readAgentOfficeMode(agent.id) !== "seated") return agent;
+
+    // Explicit office interactions still win over the manual seat preference.
+    // This keeps phone/SMS booths, QA, gym and ping-pong usable while an agent
+    // is normally configured to stay at its private desk.
+    if (
+      agent.interactionTarget !== undefined ||
+      agent.pingPongUntil !== undefined ||
+      agent.state === "working_out" ||
+      agent.state === "dancing" ||
+      agent.state === "away"
+    ) {
+      return agent;
+    }
+
+    const seat = resolvePersonalOfficeSeat(agent.id, index);
+    if (!seat) return agent;
+
+    return {
+      ...agent,
+      x: seat.x,
+      y: seat.y,
+      targetX: seat.x,
+      targetY: seat.y,
+      path: [],
+      facing: seat.facing,
+      state: "sitting",
+      bumpedUntil: undefined,
+      bumpTalkUntil: undefined,
+      collisionCooldownUntil: undefined,
+    };
+  });
+
 export function applyAgentCollisionBumps({
   agents,
   now,
 }: ApplyAgentCollisionBumpsArgs): RenderAgent[] {
-  const moved = [...agents];
+  const moved = applyPersonalOfficeModes(agents);
   const collisionCellSize = AGENT_RADIUS * 4;
   const collisionBuckets = new Map<string, number[]>();
   for (let index = 0; index < moved.length; index += 1) {
