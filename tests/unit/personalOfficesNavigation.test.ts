@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import { getItemBounds } from "@/features/retro-office/core/geometry";
 import { astar, buildNavGrid } from "@/features/retro-office/core/navigation";
 import {
+  clearAgentSeatAssignment,
   ensurePersonalOfficeWing,
   getDefaultAgentOfficeMode,
   PERSONAL_OFFICE_SLOTS,
+  readAgentSeatAssignment,
   resolvePersonalOfficeSlot,
+  writeAgentSeatAssignment,
 } from "@/features/retro-office/core/personalOffices";
 import type { FurnitureItem } from "@/features/retro-office/core/types";
 
@@ -33,6 +36,27 @@ describe("personal offices", () => {
     expect(
       once.some((item) => item.type === "executive_desk"),
     ).toBe(true);
+  });
+
+  it("stores and clears a custom seat assignment", () => {
+    const agentId = "seat-test-agent";
+    clearAgentSeatAssignment(agentId);
+    writeAgentSeatAssignment(agentId, {
+      x: 420,
+      y: 315,
+      facing: Math.PI,
+      label: "Selected chair",
+    });
+
+    expect(readAgentSeatAssignment(agentId)).toEqual({
+      x: 420,
+      y: 315,
+      facing: Math.PI,
+      label: "Selected chair",
+    });
+
+    clearAgentSeatAssignment(agentId);
+    expect(readAgentSeatAssignment(agentId)).toBeNull();
   });
 });
 
