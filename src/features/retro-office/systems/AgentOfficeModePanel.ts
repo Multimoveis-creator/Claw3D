@@ -297,6 +297,14 @@ const renderPanel = (agents: RenderAgent[]) => {
   });
   shell.appendChild(body);
 
+  const actionRow = document.createElement("div");
+  setStyles(actionRow, {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px",
+    alignItems: "center",
+  });
+
   const assignSeatButton = createButton(
     waitingForSeatLocation || pendingSeatLocation !== null
       ? "Picking seat…"
@@ -308,8 +316,26 @@ const renderPanel = (agents: RenderAgent[]) => {
       lastSignature = "";
     },
   );
-  assignSeatButton.style.justifySelf = "start";
-  body.appendChild(assignSeatButton);
+  actionRow.appendChild(assignSeatButton);
+
+  const allAtWorkstations = agents.every(
+    (agent) => readAgentOfficeMode(agent.id) === "seated",
+  );
+  const workstationButton = createButton(
+    "Workstations",
+    allAtWorkstations,
+    () => {
+      waitingForSeatLocation = false;
+      pendingSeatLocation = null;
+      for (const agent of agents) {
+        writeAgentOfficeMode(agent.id, "seated");
+      }
+      lastSignature = "";
+    },
+  );
+  workstationButton.title = "Send every agent to their assigned workstation";
+  actionRow.appendChild(workstationButton);
+  body.appendChild(actionRow);
 
   if (waitingForSeatLocation || pendingSeatLocation) {
     renderSeatPicker(body, agents);
