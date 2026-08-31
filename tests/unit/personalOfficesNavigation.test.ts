@@ -122,4 +122,28 @@ describe("retro office navigation", () => {
     expect(path.length).toBeGreaterThan(0);
     expect(path[path.length - 1]).not.toEqual(requestedTarget);
   });
+
+  it("can route from the hallway into every private workstation", () => {
+    const furniture = ensurePersonalOfficeWing([]);
+    const grid = buildNavGrid(furniture);
+
+    for (const slot of PERSONAL_OFFICE_SLOTS) {
+      const path = astar(1450, slot.seat.y, slot.seat.x, slot.seat.y, grid);
+      expect(path.length, `route to ${slot.key}`).toBeGreaterThan(0);
+      expect(path[path.length - 1]).toEqual({
+        x: slot.seat.x,
+        y: slot.seat.y,
+      });
+    }
+  });
+
+  it("does not over-block a doorway when a wall ends exactly on a grid boundary", () => {
+    const walls: FurnitureItem[] = [
+      { _uid: "door-top", type: "wall", x: 100, y: 50, w: 8, h: 50 },
+      { _uid: "door-bottom", type: "wall", x: 100, y: 140, w: 8, h: 50 },
+    ];
+    const grid = buildNavGrid(walls);
+    const path = astar(50, 120, 150, 120, grid);
+    expect(path.length).toBeGreaterThan(0);
+  });
 });
