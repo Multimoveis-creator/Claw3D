@@ -7,6 +7,7 @@ import {
   SERVER_ROOM_MIGRATION_KEY,
   STORAGE_KEY,
 } from "@/features/retro-office/core/constants";
+import { ensurePersonalOfficeWing } from "@/features/retro-office/core/personalOffices";
 import type { FurnitureItem } from "@/features/retro-office/core/types";
 
 const resolveStorageKey = (key: string, namespace = "default") =>
@@ -30,7 +31,11 @@ const markStorageFlag = (key: string, namespace = "default") => {
 
 export const saveFurniture = (items: FurnitureItem[], namespace = "default") => {
   try {
-    localStorage.setItem(resolveStorageKey(STORAGE_KEY, namespace), JSON.stringify(items));
+    const normalizedItems = ensurePersonalOfficeWing(items);
+    localStorage.setItem(
+      resolveStorageKey(STORAGE_KEY, namespace),
+      JSON.stringify(normalizedItems),
+    );
   } catch {
     /* ignore */
   }
@@ -42,7 +47,7 @@ export const loadFurniture = (namespace = "default"): FurnitureItem[] | null => 
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) && parsed.length > 0
-      ? (parsed as FurnitureItem[])
+      ? ensurePersonalOfficeWing(parsed as FurnitureItem[])
       : null;
   } catch {
     return null;
