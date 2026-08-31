@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { getItemBounds } from "@/features/retro-office/core/geometry";
-import { astar, buildNavGrid } from "@/features/retro-office/core/navigation";
+import {
+  astar,
+  buildNavGrid,
+  getDeskLocations,
+} from "@/features/retro-office/core/navigation";
 import {
   clearAgentSeatAssignment,
   ensurePersonalOfficeWing,
@@ -85,5 +89,37 @@ describe("retro office navigation", () => {
       endpoint.y >= bounds.y &&
       endpoint.y <= bounds.y + bounds.h;
     expect(endpointInsideDesk).toBe(false);
+  });
+
+  it("keeps desk workstation targets outside the desk body", () => {
+    const desk: FurnitureItem = {
+      _uid: "desk-workstation-test",
+      type: "desk_cubicle",
+      x: 300,
+      y: 300,
+      w: 100,
+      h: 55,
+    };
+
+    const [workstation] = getDeskLocations([desk]);
+    expect(workstation).toEqual({ x: 340, y: 276 });
+    expect(workstation.y).toBeLessThan(desk.y);
+  });
+
+  it("treats the area immediately beside a desk as clearance, not walkable desk space", () => {
+    const desk: FurnitureItem = {
+      _uid: "desk-clearance-test",
+      type: "desk_cubicle",
+      x: 300,
+      y: 300,
+      w: 100,
+      h: 55,
+    };
+    const grid = buildNavGrid([desk]);
+    const requestedTarget = { x: 340, y: 290 };
+    const path = astar(200, 290, requestedTarget.x, requestedTarget.y, grid);
+
+    expect(path.length).toBeGreaterThan(0);
+    expect(path[path.length - 1]).not.toEqual(requestedTarget);
   });
 });
