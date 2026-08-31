@@ -53,8 +53,8 @@ const getActiveNavGrid = (now: number): NavGrid | null => {
   return grid;
 };
 
-const hasExplicitOfficeInteraction = (agent: RenderAgent) =>
-  agent.interactionTarget !== undefined ||
+export const hasExplicitOfficeInteraction = (agent: RenderAgent) =>
+  (agent.interactionTarget !== undefined && agent.interactionTarget !== "desk") ||
   agent.pingPongUntil !== undefined ||
   agent.state === "working_out" ||
   agent.state === "dancing" ||
@@ -106,8 +106,9 @@ const applyPersonalOfficeModes = (
       return agent;
     }
 
-    // Explicit office interactions temporarily win over a manual seat. As soon
-    // as the interaction ends the route to the assigned seat resumes.
+    // Special activities temporarily win over a manual seat. The normal
+    // automatic desk target is intentionally not considered special, otherwise
+    // Workstations would freeze working agents at their old shared desks.
     if (hasExplicitOfficeInteraction(agent)) return agent;
 
     const seat = resolveAgentSeat(agent.id, index);

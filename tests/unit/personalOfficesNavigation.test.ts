@@ -14,7 +14,8 @@ import {
   resolvePersonalOfficeSlot,
   writeAgentSeatAssignment,
 } from "@/features/retro-office/core/personalOffices";
-import type { FurnitureItem } from "@/features/retro-office/core/types";
+import { hasExplicitOfficeInteraction } from "@/features/retro-office/systems/NavigationSystem";
+import type { FurnitureItem, RenderAgent } from "@/features/retro-office/core/types";
 
 describe("personal offices", () => {
   it("gives main the executive office and keeps it seated by default", () => {
@@ -61,6 +62,36 @@ describe("personal offices", () => {
 
     clearAgentSeatAssignment(agentId);
     expect(readAgentSeatAssignment(agentId)).toBeNull();
+  });
+
+  it("lets Workstations override the ordinary shared-desk interaction", () => {
+    const baseAgent = {
+      id: "main",
+      name: "Jhow (CEO)",
+      status: "working",
+      color: "#fff",
+      item: "",
+      x: 500,
+      y: 300,
+      targetX: 500,
+      targetY: 300,
+      path: [],
+      facing: 0,
+      frame: 0,
+      walkSpeed: 0.3,
+      phaseOffset: 0,
+      state: "sitting",
+    } as RenderAgent;
+
+    expect(
+      hasExplicitOfficeInteraction({ ...baseAgent, interactionTarget: "desk" }),
+    ).toBe(false);
+    expect(
+      hasExplicitOfficeInteraction({
+        ...baseAgent,
+        interactionTarget: "meeting_room",
+      }),
+    ).toBe(true);
   });
 });
 
