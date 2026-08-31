@@ -1,4 +1,8 @@
-import { CANVAS_H, CANVAS_W } from "@/features/retro-office/core/constants";
+import {
+  AGENT_RADIUS,
+  CANVAS_H,
+  CANVAS_W,
+} from "@/features/retro-office/core/constants";
 import {
   getItemBounds,
   ITEM_FOOTPRINT,
@@ -70,6 +74,7 @@ export const JANITOR_EXIT_POINTS: FacingPoint[] = [
 const GRID_CELL = 25;
 const GRID_COLS = Math.ceil(CANVAS_W / GRID_CELL);
 const GRID_ROWS = Math.ceil(CANVAS_H / GRID_CELL);
+const DESK_WORKSTATION_CLEARANCE = AGENT_RADIUS + 4;
 
 export type NavGrid = Uint8Array;
 
@@ -314,7 +319,10 @@ export function astar(
 export const getDeskLocations = (items: FurnitureItem[]) =>
   items
     .filter((item) => item.type === "desk_cubicle")
-    .map((item) => ({ x: item.x + 40, y: item.y - 5 }));
+    .map((item) => ({
+      x: item.x + 40,
+      y: item.y - DESK_WORKSTATION_CLEARANCE,
+    }));
 
 export const getMeetingSeatLocations = (items: FurnitureItem[]) => {
   // Meeting seats are inferred from chair placement in the conference area so standup
@@ -509,7 +517,9 @@ export const resolveDeskIndexForItem = (
   if (deskLocations.length === 0) return -1;
   if (item.type === "desk_cubicle") {
     return deskLocations.findIndex(
-      (desk) => desk.x === item.x + 40 && desk.y === item.y - 5,
+      (desk) =>
+        desk.x === item.x + 40 &&
+        desk.y === item.y - DESK_WORKSTATION_CLEARANCE,
     );
   }
 
