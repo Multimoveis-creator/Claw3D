@@ -25,8 +25,10 @@ export const AGENT_SEAT_ASSIGNMENT_EVENT =
 export const OFFICE_SEAT_LOCATION_EVENT = "claw3d-office-seat-location-click";
 
 const PERSONAL_OFFICE_MARKER_PREFIX = "personal-office:";
-const ROOM_X = 1550;
-const ROOM_W = 242;
+// The QA/east wing ends at x=1534. Keeping the private-office wall at x=1600
+// leaves a real 66px hallway that an AGENT_RADIUS=20 actor can traverse.
+const ROOM_X = 1600;
+const ROOM_W = 190;
 const ROOM_H = 150;
 const ROOM_TOPS = [40, 205, 370, 535] as const;
 
@@ -105,7 +107,9 @@ const buildRoomFurniture = (params: {
     },
     {
       type: executive ? "executive_desk" : "table_rect",
-      x: executive ? 1622 : 1630,
+      // Keep the desk one navigation cell inside the door so the doorway cell
+      // itself stays free. This matters for the executive desk in particular.
+      x: 1640,
       y: deskY,
       w: executive ? 130 : 120,
       h: executive ? 65 : 44,
@@ -219,17 +223,33 @@ export const resolvePersonalOfficeSeat = (
 export const ensurePersonalOfficeWing = (
   items: FurnitureItem[],
 ): FurnitureItem[] => {
-  const existingIds = new Set(
-    items
-      .map((item) => item.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0),
+  // These rooms are system-owned furniture. Reconcile matching IDs to the
+  // current blueprint instead of only adding missing items; otherwise users
+  // who already persisted the old x=1550 layout would never receive geometry
+  // fixes on redeploy.
+  const seedsById = new Map(
+    PERSONAL_OFFICE_FURNITURE.flatMap((seed) =>
+      seed.id ? ([[seed.id, seed]] as const) : [],
+    ),
   );
+  const existingIds = new Set<string>();
+  const reconciled = items.map((item) => {
+    if (!item.id) return item;
+    const seed = seedsById.get(item.id);
+    if (!seed) return item;
+    existingIds.add(item.id);
+    return {
+      ...item,
+      ...seed,
+      _uid: item._uid,
+    };
+  });
+
   const missing = PERSONAL_OFFICE_FURNITURE.filter(
     (seed) => !seed.id || !existingIds.has(seed.id),
   );
-  if (missing.length === 0) return items;
   return [
-    ...items,
+    ...reconciled,
     ...missing.map((seed) => ({ ...seed, _uid: nextUid() })),
   ];
 };

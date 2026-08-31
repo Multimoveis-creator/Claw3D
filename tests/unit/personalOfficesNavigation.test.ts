@@ -43,6 +43,31 @@ describe("personal offices", () => {
     ).toBe(true);
   });
 
+  it("migrates already persisted private-office geometry to the current blueprint", () => {
+    const legacyTopWall: FurnitureItem = {
+      _uid: "legacy-office-wall",
+      id: "personal-office:0:wall-top",
+      type: "wall",
+      x: 1550,
+      y: 40,
+      w: 242,
+      h: 8,
+    };
+
+    const migrated = ensurePersonalOfficeWing([legacyTopWall]);
+    const topWall = migrated.find(
+      (item) => item.id === "personal-office:0:wall-top",
+    );
+
+    expect(topWall).toMatchObject({
+      _uid: "legacy-office-wall",
+      x: 1600,
+      y: 40,
+      w: 190,
+      h: 8,
+    });
+  });
+
   it("stores and clears a custom seat assignment", () => {
     const agentId = "seat-test-agent";
     clearAgentSeatAssignment(agentId);
@@ -159,8 +184,32 @@ describe("retro office navigation", () => {
     const grid = buildNavGrid(furniture);
 
     for (const slot of PERSONAL_OFFICE_SLOTS) {
-      const path = astar(1450, slot.seat.y, slot.seat.x, slot.seat.y, grid);
+      const path = astar(1540, 700, slot.seat.x, slot.seat.y, grid);
       expect(path.length, `route to ${slot.key}`).toBeGreaterThan(0);
+      expect(path[path.length - 1]).toEqual({
+        x: slot.seat.x,
+        y: slot.seat.y,
+      });
+    }
+  });
+
+  it("can reach the private-office hallway around the east-wing right wall", () => {
+    // Mirrors the real east-wing edge: its right wall ends at x=1534/y=680.
+    // The private offices start at x=1600, leaving a traversable hall.
+    const eastWingRightWall: FurnitureItem = {
+      _uid: "east-wing-right-wall",
+      type: "wall",
+      x: 1534,
+      y: 40,
+      w: 8,
+      h: 640,
+    };
+    const furniture = ensurePersonalOfficeWing([eastWingRightWall]);
+    const grid = buildNavGrid(furniture);
+
+    for (const slot of PERSONAL_OFFICE_SLOTS) {
+      const path = astar(1450, 700, slot.seat.x, slot.seat.y, grid);
+      expect(path.length, `hallway route to ${slot.key}`).toBeGreaterThan(0);
       expect(path[path.length - 1]).toEqual({
         x: slot.seat.x,
         y: slot.seat.y,
