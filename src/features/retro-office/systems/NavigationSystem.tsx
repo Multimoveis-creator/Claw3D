@@ -31,6 +31,7 @@ type SeatRouteState = {
   signature: string;
   finalPoint: { x: number; y: number };
   waypoints: { x: number; y: number }[];
+  plannedWithGrid: boolean;
 };
 
 const SEAT_ARRIVAL_DISTANCE = 8;
@@ -66,18 +67,28 @@ const getOrCreateSeatRoute = (
 ): SeatRouteState => {
   const signature = `${seat.x.toFixed(2)}:${seat.y.toFixed(2)}:${seat.facing.toFixed(4)}`;
   const existing = seatRoutesByAgentId.get(agent.id);
-  if (existing?.signature === signature) return existing;
-
   const grid = getActiveNavGrid(now);
+  if (
+    existing?.signature === signature &&
+    (existing.plannedWithGrid || !grid)
+  ) {
+    return existing;
+  }
+
   const planned = grid
     ? astar(agent.x, agent.y, seat.x, seat.y, grid)
     : [{ x: seat.x, y: seat.y }];
+  const plannedWithGrid = Boolean(grid && planned.length > 0);
   const fallback = { x: seat.x, y: seat.y };
-  const finalPoint = planned[planned.length - 1] ?? fallback;
+  const finalPoint =
+    planned[planned.length - 1] ??
+    (grid ? { x: agent.x, y: agent.y } : fallback);
   const route: SeatRouteState = {
     signature,
     finalPoint,
-    waypoints: planned.length > 0 ? [...planned] : [fallback],
+    waypoints:
+      planned.length > 0 ? [...planned] : grid ? [] : [fallback],
+    plannedWithGrid,
   };
   seatRoutesByAgentId.set(agent.id, route);
   return route;
